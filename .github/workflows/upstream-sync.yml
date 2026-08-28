@@ -1,0 +1,90 @@
+name: Sync canonical mikuOS
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: mikuos-upstream-sync
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mikuOS お姫様
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "mikuOS upstream sync"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch canonical mikuOS
+        run: |
+          git remote add upstream https://github.com/kitty-crow/mikuOS.git
+          git fetch upstream main
+
+      - name: Check for upstream changes
+        id: check
+        shell: bash
+        run: |
+          if git merge-base --is-ancestor upstream/main HEAD; then
+              echo "required=false" >> "$GITHUB_OUTPUT"
+          else
+              echo "required=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Prepare synchronisation branch
+        if: steps.check.outputs.required == 'true'
+        shell: bash
+        run: |
+          BRANCH="sync/mikuos-main"
+
+          git checkout -B "$BRANCH" origin/main
+          git merge --no-edit upstream/main
+
+          git push \
+              --force-with-lease \
+              origin \
+              "$BRANCH"
+
+      - name: Open synchronisation pull request
+        if: steps.check.outputs.required == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          BRANCH="sync/mikuos-main"
+
+          PR="$(
+              gh pr list \
+                  --base main \
+                  --head "$BRANCH" \
+                  --state open \
+                  --json number \
+                  --jq '.[0].number // empty'
+          )"
+
+          if [ -n "$PR" ]; then
+              echo "Synchronisation PR #$PR already exists."
+              exit 0
+          fi
+
+          gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Sync canonical mikuOS" \
+              --body "Synchronises \`kitty-crow/mikuOS:main\` into mikuOS お姫様.
+
+This is deliberately reviewed rather than merged directly.
+
+The synchronisation must preserve canonical mikuOS semantics while maintaining the お姫様 headless invariants."
