@@ -31,7 +31,6 @@ export const OHIMESAMA_BASE_PATHS = new Set<string>([
   "/lib",
   "/proc",
   "/run",
-  "/srv",
   "/tmp",
   "/usr",
   "/usr/bin",
@@ -46,7 +45,6 @@ export const OHIMESAMA_REQUIRED_PATHS = [
   "/etc/passwd",
   "/etc/group",
   "/run",
-  "/srv",
   "/tmp",
   "/usr",
   "/usr/bin",
@@ -70,7 +68,7 @@ export const keepOhimesamaBasePath = (path: string): boolean =>
 
 export const OHIMESAMA_PASSWD = [
   "root:x:0:0:root:/:/sbin/nologin",
-  "service:x:1000:1000:service:/srv:/sbin/nologin",
+  "service:x:1000:1000:service:/run:/sbin/nologin",
   "",
 ].join("\n");
 
