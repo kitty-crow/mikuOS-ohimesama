@@ -2,7 +2,6 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
-import { ROOT_IMAGE_VERSION } from "../main/image.js";
 import { WebRootPackage } from "../main/webroot.js";
 import {
   OHIMESAMA_GROUP,
@@ -51,7 +50,11 @@ const raw = JSON.parse(
 if (!Array.isArray(raw.ent)) {
   throw new Error("canonical mikuOS root metadata has no entry table");
 }
+if (!Number.isSafeInteger(raw.image) || (raw.image ?? -1) < 0) {
+  throw new Error("canonical mikuOS root metadata has no valid image version");
+}
 
+const rootImageVersion = raw.image!;
 const rows = raw.ent.filter(row => keepOhimesamaBasePath(row.p));
 const paths = new Set(rows.map(row => row.p));
 
@@ -95,7 +98,7 @@ await fs.writeFile(
 const manifest = await new WebRootPackage(
   stage,
   packaged,
-  ROOT_IMAGE_VERSION,
+  rootImageVersion,
 ).build();
 
 const bundled = await esbuild({
@@ -140,7 +143,7 @@ const profile = {
   format: 1,
   profile: "mikuOS お姫様",
   profileVersion: OHIMESAMA_PROFILE_VERSION,
-  rootImageVersion: ROOT_IMAGE_VERSION,
+  rootImageVersion,
   runtime: null,
   application: null,
   entries: manifest.entries.length,
