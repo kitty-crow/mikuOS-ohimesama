@@ -7,6 +7,10 @@
   "scripts": {
     "build": "npm run build:thistle && npm run teto:build",
     "build:thistle": "npm run clean && tsc -p tsconfig.json && node build/tool/post.js",
+    "build:ohimesama": "npm run build && npm run ohimesama:build",
+    "ohimesama:build": "node build/ohimesama/build.js",
+    "ohimesama:check": "node build/ohimesama/check.js",
+    "test:ohimesama": "npm run build:ohimesama && npm run ohimesama:check",
     "teto:build": "bun baguette/src/compiler.ts && if [ -f build/tool/teto-web.js ] && [ -f dist/web/index.html ]; then node build/tool/teto-web.js; fi",
     "teto:validate": "bun baguette/src/compiler.ts --validate-only",
     "clean": "rm -rf build dist thistle.js vendor",
