@@ -1,6 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { build as esbuild } from "esbuild";
 import { ROOT_IMAGE_VERSION } from "../main/image.js";
 import { WebRootPackage } from "../main/webroot.js";
 import {
@@ -24,6 +25,24 @@ const source = path.join(root, ".thistle.base");
 const stage = path.join(root, "build", "ohimesama", "root-stage");
 const output = path.join(root, "dist", "ohimesama");
 const packaged = path.join(output, "root");
+const hostBundle = path.join(output, "ohimesama.js");
+const tetoSource = path.join(root, "dist", "teto", "teto.wasm");
+const tetoOutput = path.join(output, "teto.wasm");
+
+const forbiddenHostInputs = [
+  "/sh/",
+  "/io/tty.js",
+  "/main/boot.js",
+  "/main/cli.js",
+  "/main/image.js",
+  "/main/server.js",
+  "/main/session.js",
+  "/main/web.js",
+  "/main/websession.js",
+  "/main/webtree.js",
+  "/apps/index.js",
+  "/@xterm/",
+] as const;
 
 const raw = JSON.parse(
   await fs.readFile(path.join(source, ".thistle-meta.json"), "utf8"),
@@ -79,6 +98,44 @@ const manifest = await new WebRootPackage(
   ROOT_IMAGE_VERSION,
 ).build();
 
+const bundled = await esbuild({
+  entryPoints: [path.join(root, "build", "ohimesama", "index.js")],
+  outfile: hostBundle,
+  bundle: true,
+  platform: "browser",
+  format: "esm",
+  target: ["es2022"],
+  minify: true,
+  treeShaking: true,
+  legalComments: "none",
+  metafile: true,
+  logLevel: "silent",
+});
+
+const hostInputs = Object.keys(bundled.metafile.inputs)
+  .map(input => input.replaceAll("\\", "/"))
+  .sort();
+
+for (const input of hostInputs) {
+  const normal = `/${input}`;
+  const forbidden = forbiddenHostInputs.find(part => normal.includes(part));
+  if (forbidden) {
+    throw new Error(`headless host pulled forbidden interactive module ${input} (${forbidden})`);
+  }
+}
+
+await fs.writeFile(
+  path.join(output, "host-inputs.json"),
+  JSON.stringify(hostInputs, null, 2) + "\n",
+);
+
+await fs.copyFile(tetoSource, tetoOutput);
+
+const [hostStat, tetoStat] = await Promise.all([
+  fs.stat(hostBundle),
+  fs.stat(tetoOutput),
+]);
+
 const profile = {
   format: 1,
   profile: "mikuOS お姫様",
@@ -89,6 +146,9 @@ const profile = {
   entries: manifest.entries.length,
   packedBytes: manifest.core.packedSize,
   unpackedBytes: manifest.core.unpackedSize,
+  hostBytes: hostStat.size,
+  hostModules: hostInputs.length,
+  tetoBytes: tetoStat.size,
 };
 
 await fs.writeFile(
@@ -100,4 +160,8 @@ console.log(
   `mikuOS お姫様: ${manifest.entries.length} paths, ` +
   `${manifest.core.unpackedSize} eager bytes, ` +
   `${manifest.core.packedSize} packed bytes`,
+);
+console.log(
+  `headless host: ${hostStat.size} bytes from ${hostInputs.length} modules; ` +
+  `Teto: ${tetoStat.size} bytes`,
 );
