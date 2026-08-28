@@ -28,11 +28,5 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Preserve canonical mikuOS semantics
-        run: npm test
-
-      - name: Build mikuOS お姫様 root
-        run: npm run ohimesama:build
-
-      - name: Enforce headless image invariants
-        run: npm run ohimesama:check
+      - name: Build and test mikuOS お姫様
+        run: npm run test:ohimesama
