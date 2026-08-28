@@ -1,0 +1,71 @@
+name: Canonical mikuOS lineage
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lineage:
+    name: mikuOS upstream is ancestor
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout mikuOS お姫様
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch canonical mikuOS
+        shell: bash
+        run: |
+          git remote add upstream https://github.com/kitty-crow/mikuOS.git
+          git fetch --no-tags upstream main
+
+      - name: Verify canonical ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OHIMESAMA="$(git rev-parse HEAD)"
+          MIKUOS="$(git rev-parse upstream/main)"
+          BASE="$(git merge-base HEAD upstream/main)"
+
+          echo "mikuOS お姫様 HEAD : $OHIMESAMA"
+          echo "canonical mikuOS    : $MIKUOS"
+          echo "merge base           : $BASE"
+
+          if ! git merge-base --is-ancestor upstream/main HEAD; then
+              echo
+              echo "============================================================"
+              echo "ERROR: mikuOS お姫様 is behind canonical mikuOS"
+              echo "============================================================"
+              echo
+              echo "Every canonical mikuOS commit must be present unchanged"
+              echo "in the ancestry of mikuOS お姫様."
+              echo
+              echo "Missing canonical commits:"
+              git log \
+                  --oneline \
+                  --decorate \
+                  HEAD..upstream/main
+              echo
+              echo "Synchronise canonical mikuOS before merging."
+              exit 1
+          fi
+
+          echo
+          echo "Canonical mikuOS is an ancestor of this build."
+          echo
+          echo "お姫様-specific commits:"
+          git log \
+              --oneline \
+              --decorate \
+              upstream/main..HEAD
