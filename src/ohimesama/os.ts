@@ -8,6 +8,7 @@ import type { Tree } from "../fs/tree.js";
 import { Net } from "../net/net.js";
 import type { TetoImageProvider } from "../teto/loader.js";
 import { validateTetoProvider } from "../teto/provider.js";
+import { liveOhimesama } from "./live.js";
 
 export interface OhimesamaHost {
   root: Tree;
@@ -49,6 +50,7 @@ export class Ohimesama {
     if (!entries?.length) throw new Error("mikuOS お姫様 root is empty");
 
     treeFs.load(this.k.fs, entries);
+    liveOhimesama(this.k);
     await validateTetoProvider(this.host.teto);
 
     this.k.name = "Teto";
