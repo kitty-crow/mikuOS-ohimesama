@@ -79,12 +79,17 @@ jobs:
               exit 0
           fi
 
+          BODY="$(cat <<'EOF'
+          Synchronises `kitty-crow/mikuOS:main` into mikuOS お姫様.
+
+          This is deliberately reviewed rather than merged directly.
+
+          The synchronisation must preserve canonical mikuOS semantics while maintaining the お姫様 headless invariants.
+          EOF
+          )"
+
           gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "Sync canonical mikuOS" \
-              --body "Synchronises \`kitty-crow/mikuOS:main\` into mikuOS お姫様.
-
-This is deliberately reviewed rather than merged directly.
-
-The synchronisation must preserve canonical mikuOS semantics while maintaining the お姫様 headless invariants."
+              --body "$BODY"
