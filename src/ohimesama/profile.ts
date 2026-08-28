@@ -44,6 +44,7 @@ export const OHIMESAMA_REQUIRED_PATHS = [
   "/etc",
   "/etc/passwd",
   "/etc/group",
+  "/etc/os-release",
   "/run",
   "/tmp",
   "/usr",
