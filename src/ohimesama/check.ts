@@ -117,6 +117,17 @@ for (const variable of ["SHELL", "TERM", "PS1"]) {
 }
 if (os.s.read("/etc/passwd") !== passwd) fail("headless host loaded the wrong root image");
 
+const dev = new Set(os.s.paths("/dev"));
+for (const device of ["/dev/null", "/dev/zero", "/dev/random", "/dev/urandom", "/dev/full"]) {
+  if (!dev.has(device)) fail(`required runtime device is missing: ${device}`);
+}
+for (const interactive of ["/dev/console", "/dev/tty", "/dev/ptmx"]) {
+  if (dev.has(interactive)) fail(`interactive device survived: ${interactive}`);
+}
+
+const zero = os.s.readb("/dev/zero");
+if (zero.length && zero.some(byte => byte !== 0)) fail("/dev/zero produced non-zero data");
+
 const hostInputs = JSON.parse(
   await fs.readFile(path.join(output, "host-inputs.json"), "utf8"),
 ) as string[];
@@ -129,4 +140,5 @@ console.log(`packed root payload: ${manifest.core.packedSize} bytes`);
 console.log(`headless host modules: ${hostInputs.length}`);
 console.log("runtime payload: none");
 console.log("interactive shell: none");
+console.log("interactive devices: none");
 console.log("processes after bare boot: PID 1 only");
