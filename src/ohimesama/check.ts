@@ -79,8 +79,9 @@ const raw = JSON.parse(
   await fs.readFile(path.join(stage, ".thistle-meta.json"), "utf8"),
 ) as { ent?: RootRow[] };
 
-const rootRows = raw.ent;
-if (!Array.isArray(rootRows)) fail("staged root metadata is missing");
+const rootRows: RootRow[] = Array.isArray(raw.ent)
+  ? raw.ent
+  : fail("staged root metadata is missing");
 
 const entries: TreeEnt[] = await Promise.all(rootRows.map(async row => {
   if (row.k !== "f") return { ...row } as TreeEnt;
